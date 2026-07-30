@@ -1,0 +1,20 @@
+{
+    "extends": "@repo/typescript-config/base.json",
+    "compilerOptions": {
+      "module": "NodeNext", // ES module system with Node.js resolution
+      "target": "ESNext", // Latest JavaScript features
+      "outDir": "./dist", // Output directory for compiled files
+      "rootDir": "./src", // Root directory for source files
+      "esModuleInterop": true, // Compatibility with CommonJS modules
+      "allowSyntheticDefaultImports": true, // Allow default imports from CommonJS modules
+      "strict": true, // Enable strict type checking
+      "skipLibCheck": true, // Skip type checking for declaration files
+      "declaration": true, // Generate `.d.ts` files for type declarations
+      "declarationMap": true, // Generate maps for `.d.ts` files
+      "sourceMap": true, // Enable source maps for debugging
+      "forceConsistentCasingInFileNames": true // Enforce consistent file casing
+    },
+    "include": ["src"], // Include the `src` folder for compilation
+    "exclude": ["node_modules", "dist"] // Exclude `node_modules` and `dist` folders
+  }
+  

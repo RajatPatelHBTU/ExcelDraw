@@ -1,0 +1,18 @@
+{
+    "extends": "@repo/typescript-config/base.json",
+    "compilerOptions": {
+      "outDir": "./dist",                    // Directory where compiled JavaScript will go
+      "rootDir": "./src",                    // Root directory for your source TypeScript files
+      "module": "NodeNext",                    // Use ES Modules for better compatibility with modern JavaScript
+      "target": "ESNext",                    // Target modern JavaScript features (async/await, etc.)
+      "moduleResolution": "nodenext",            // Use Node.js-style module resolution
+      "esModuleInterop": true,               // Enable interoperability with CommonJS modules
+      "allowSyntheticDefaultImports": true,  // Allow default imports from non-ESM modules
+      "strict": true,                        // Enable strict type checking options
+      "skipLibCheck": true,                  // Skip type checking for `node_modules` (speeds up compilation)
+      "forceConsistentCasingInFileNames": true // Ensure consistent casing in file names
+    },
+    "include": ["src"],                      // Include the source folder in the compilation
+    "exclude": ["node_modules", "dist"]      // Exclude the `node_modules` and `dist` folder from the compilation
+  }
+  

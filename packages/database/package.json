@@ -1,0 +1,25 @@
+{
+  "type" : "module",
+  "name": "@repo/database",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "exports": {
+    "./db": "./dist/db.js"
+  },
+  "scripts": {
+    "build" : "tsc",
+    "postinstall": "prisma generate",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@prisma/client": "6.2.1",
+    "prisma": "^6.2.1"
+  }
+}

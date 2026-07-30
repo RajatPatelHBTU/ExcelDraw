@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: exceldraw-api
+    env: node
+    plan: free
+    buildCommand: pnpm install && cd packages/database && npx prisma generate && cd ../.. && pnpm run build --filter http-backend
+    startCommand: node apps/http-backend/dist/index.js
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  - type: web
+    name: exceldraw-ws
+    env: node
+    plan: free
+    buildCommand: pnpm install && cd packages/database && npx prisma generate && cd ../.. && pnpm run build --filter websockets
+    startCommand: node apps/websockets/dist/index.js
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false

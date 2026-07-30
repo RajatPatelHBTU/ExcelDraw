@@ -1,0 +1,243 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   LIGHT THEME (default)
+   ========================================================= */
+:root {
+  --background: 210 40% 98%;
+  --foreground: 240 10% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 10%;
+  --primary: 252 95% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 96%;
+  --secondary-foreground: 240 10% 10%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 252 95% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 90%;
+  --input: 240 6% 90%;
+  --ring: 252 95% 60%;
+  --radius: 0.5rem;
+
+  /* themed helpers */
+  --grid-dot: 240 10% 10% / 0.06;
+  --canvas-bg: 210 40% 97%;
+  --canvas-grid: 240 10% 10% / 0.06;
+  --canvas-stroke: 240 10% 15%;
+}
+
+/* =========================================================
+   DARK THEME (neon)
+   ========================================================= */
+.dark {
+  --background: 0 0% 7%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 12%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 12%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 252 100% 70%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 16%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 16%;
+  --muted-foreground: 0 0% 63%;
+  --accent: 252 100% 70%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 100% 65%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 252 100% 70%;
+
+  --grid-dot: 0 0% 100% / 0.08;
+  --canvas-bg: 240 12% 5%;
+  --canvas-grid: 252 100% 70% / 0.10;
+  --canvas-stroke: 0 0% 89%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    background-image: radial-gradient(hsl(var(--grid-dot)) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Grid Background Pattern */
+.bg-grid {
+  background-size: 50px 50px;
+  background-image: linear-gradient(to right, hsl(var(--grid-dot)) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--grid-dot)) 1px, transparent 1px);
+}
+.bg-grid-white {
+  background-image: linear-gradient(to right, hsl(var(--grid-dot)) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--grid-dot)) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* =========================================================
+   NEON / GLOW UTILITIES (used by the landing page)
+   ========================================================= */
+.neon-text {
+  text-shadow: 0 0 8px rgba(168, 130, 255, 0.55), 0 0 24px rgba(124, 92, 255, 0.45);
+}
+.neon-border {
+  box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.35), 0 0 24px rgba(124, 92, 255, 0.25),
+    inset 0 0 24px rgba(124, 92, 255, 0.08);
+}
+.neon-card {
+  position: relative;
+  background: rgba(18, 16, 28, 0.55);
+  border: 1px solid rgba(124, 92, 255, 0.18);
+  backdrop-filter: blur(14px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.neon-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(124, 92, 255, 0.55);
+  box-shadow: 0 0 32px rgba(124, 92, 255, 0.35), 0 0 64px rgba(0, 229, 255, 0.12);
+}
+
+/* Animated conic / aurora background blobs */
+@keyframes aurora {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(8%, -6%) scale(1.15); }
+  66%  { transform: translate(-6%, 6%) scale(0.95); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.animate-aurora { animation: aurora 18s ease-in-out infinite; }
+
+@keyframes gradient-pan {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-pan 6s ease infinite;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.animate-float { animation: float-y 6s ease-in-out infinite; }
+
+@keyframes grid-scroll {
+  from { background-position: 0 0; }
+  to   { background-position: 0 50px; }
+}
+.neon-grid {
+  background-image: linear-gradient(to right, rgba(124, 92, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(124, 92, 255, 0.12) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: grid-scroll 4s linear infinite;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+.animate-glow { animation: glow-pulse 3s ease-in-out infinite; }
+
+/* =========================================================
+   3D PERSPECTIVE GRID (retro floor + back wall) — landing bg
+   Parent holds the perspective; the two planes hinge at the
+   center horizon — floor tilts toward you, wall tilts away.
+   ========================================================= */
+.grid-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 540px;
+  perspective-origin: 50% 50%;
+}
+.grid-floor,
+.grid-wall {
+  position: absolute;
+  left: -100%;
+  width: 300%;
+  height: 60%;
+  background-image:
+    linear-gradient(to right, rgba(125, 160, 240, 0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(125, 160, 240, 0.6) 1px, transparent 1px);
+  background-size: 50px 50px;
+  will-change: background-position;
+}
+.grid-floor {
+  top: 50%;
+  transform-origin: top center;
+  transform: rotateX(73deg);
+  animation: grid-run 3s linear infinite;
+}
+.grid-wall {
+  bottom: 50%;
+  transform-origin: bottom center;
+  transform: rotateX(-73deg);
+  animation: grid-run-rev 3s linear infinite;
+}
+@keyframes grid-run {
+  from { background-position: 0 0; }
+  to   { background-position: 0 50px; }
+}
+@keyframes grid-run-rev {
+  from { background-position: 0 50px; }
+  to   { background-position: 0 0; }
+}
+
+/* Keyframes (existing) */
+@keyframes ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple 600ms linear;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Modal Animation */
+.modal-enter { opacity: 0; transform: scale(0.95); }
+.modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 200ms, transform 200ms ease-out;
+}
+.modal-exit { opacity: 1; transform: scale(1); }
+.modal-exit-active {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 200ms, transform 200ms ease-out;
+}
