@@ -80,8 +80,7 @@ Follow these steps to spin up the entire ecosystem on your local machine.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/sanyamhbtu/ExcelDraw.git
-
+git clone https://github.com/RajatPatelHBTU/ExcelDraw.git
 # 2. Install dependencies via pnpm (vital for monorepos)
 pnpm install
 
