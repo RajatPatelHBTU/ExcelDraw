@@ -54,12 +54,16 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
   );
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [zoom, setZoom] = useState(1);
+  const [hasSelection, setHasSelection] = useState(false);
+  const [history, setHistory] = useState({ canUndo: false, canRedo: false });
 
   // create the engine once the canvas + socket are ready
   useEffect(() => {
     if (!canvasRef.current || !socket) return;
     const g = new Game(canvasRef.current, roomId, socket, theme);
     g.onZoomChange = (z) => setZoom(z);
+    g.onSelectionChange = (has) => setHasSelection(has);
+    g.onHistoryChange = (state) => setHistory(state);
     setGame(g);
     return () => g.destroy();
     // theme intentionally excluded — re-theming is handled below without
@@ -119,6 +123,12 @@ export function Canvas({ roomId, socket }: { roomId: string; socket: WebSocket }
         strokeWidth={strokeWidth}
         setStrokeWidth={setStrokeWidth}
         onDeleteSelected={() => game?.deleteSelected()}
+        onDuplicateSelected={() => game?.duplicateSelected()}
+        onUndo={() => game?.undo()}
+        onRedo={() => game?.redo()}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        hasSelection={hasSelection}
       />
 
       <canvas

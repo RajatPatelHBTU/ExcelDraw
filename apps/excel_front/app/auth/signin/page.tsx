@@ -9,7 +9,22 @@ import { Mail, Lock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from 'js-cookie'
 import axios from "axios";
+import { toast } from "sonner";
 import { HTTP_BACKEND } from "@/config";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    return (
+      error.response?.data?.message ??
+      error.response?.data?.error ??
+      (error.code === "ERR_NETWORK"
+        ? "Can't reach the server. Please try again."
+        : error.message) ??
+      fallback
+    );
+  }
+  return fallback;
+}
 function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [email,setEmail] = useState("");
@@ -30,16 +45,14 @@ function SignIn() {
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'strict',
         });
-        setTimeout(()=> {
-          alert("Signed in successfully")
-        },1000)
+        toast.success("Signed in successfully");
         router.push('/dashboard');
-        
+        return;
       }
+      toast.error("Sign in failed. Please try again.");
+      setIsLoading(false);
     } catch (error) {
-      setTimeout(()=>{
-        alert("Error: " + error);
-      })
+      toast.error(getErrorMessage(error, "Unable to sign in. Please check your credentials."));
       setIsLoading(false);
     }
   };

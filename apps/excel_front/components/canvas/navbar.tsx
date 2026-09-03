@@ -10,6 +10,9 @@ import {
   Pencil,
   Eraser,
   Trash2,
+  Undo2,
+  Redo2,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tool } from "../Canvas";
@@ -22,6 +25,12 @@ export interface DrawingToolbarProps {
   strokeWidth: number;
   setStrokeWidth: (width: number) => void;
   onDeleteSelected?: () => void;
+  onDuplicateSelected?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  hasSelection?: boolean;
 }
 
 const tools: { id: Tool; icon: typeof Square; label: string; shortcut: string }[] = [
@@ -50,10 +59,43 @@ export function DrawingToolbar({
   strokeWidth,
   setStrokeWidth,
   onDeleteSelected,
+  onDuplicateSelected,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  hasSelection,
 }: DrawingToolbarProps) {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
       <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-white/10 bg-zinc-900/70 p-1.5 shadow-2xl shadow-black/40 backdrop-blur-xl">
+        {/* History */}
+        {(onUndo || onRedo) && (
+          <>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onUndo}
+                disabled={!canUndo}
+                title="Undo — Ctrl+Z"
+                aria-label="Undo"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-300 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <Undo2 className="h-[18px] w-[18px]" />
+              </button>
+              <button
+                onClick={onRedo}
+                disabled={!canRedo}
+                title="Redo — Ctrl+Shift+Z"
+                aria-label="Redo"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-300 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <Redo2 className="h-[18px] w-[18px]" />
+              </button>
+            </div>
+            <div className="mx-1 h-7 w-px bg-white/10" />
+          </>
+        )}
+
         {/* Tools */}
         {tools.map(({ id, icon: Icon, label, shortcut }) => (
           <button
@@ -138,17 +180,29 @@ export function DrawingToolbar({
           ))}
         </div>
 
-        {selectedTool === "select" && onDeleteSelected && (
+        {selectedTool === "select" && hasSelection && (onDeleteSelected || onDuplicateSelected) && (
           <>
             <div className="mx-1 h-7 w-px bg-white/10" />
-            <button
-              onClick={onDeleteSelected}
-              title="Delete selected — Del"
-              aria-label="Delete selected"
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-300 transition-colors hover:bg-red-500/20 hover:text-red-300"
-            >
-              <Trash2 className="h-[18px] w-[18px]" />
-            </button>
+            {onDuplicateSelected && (
+              <button
+                onClick={onDuplicateSelected}
+                title="Duplicate — Ctrl+D"
+                aria-label="Duplicate selected"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <Copy className="h-[18px] w-[18px]" />
+              </button>
+            )}
+            {onDeleteSelected && (
+              <button
+                onClick={onDeleteSelected}
+                title="Delete selected — Del"
+                aria-label="Delete selected"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-300 transition-colors hover:bg-red-500/20 hover:text-red-300"
+              >
+                <Trash2 className="h-[18px] w-[18px]" />
+              </button>
+            )}
           </>
         )}
       </div>

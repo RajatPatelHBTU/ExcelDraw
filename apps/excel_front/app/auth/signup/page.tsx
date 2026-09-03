@@ -15,6 +15,21 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { toast } from "sonner";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    return (
+      error.response?.data?.message ??
+      error.response?.data?.error ??
+      (error.code === "ERR_NETWORK"
+        ? "Can't reach the server. Please try again."
+        : error.message) ??
+      fallback
+    );
+  }
+  return fallback;
+}
 import { HTTP_BACKEND } from "@/config";
  function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,13 +56,14 @@ import { HTTP_BACKEND } from "@/config";
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'strict',
         });
+        toast.success("Account created successfully");
         router.push('/dashboard');
         return;
       }
-      alert("Sign up failed. Please try again.");
+      toast.error("Sign up failed. Please try again.");
       setIsLoading(false);
     } catch (error) {
-      alert("Error: " + error);
+      toast.error(getErrorMessage(error, "Unable to create your account. Please try again."));
       setIsLoading(false);
     }
   };

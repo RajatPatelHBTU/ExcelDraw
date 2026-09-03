@@ -34,6 +34,16 @@ type WireMessage =
   | { type: "delete"; ids: string[] }
   | { type: "update"; shape: Shape };
 
+/**
+ * A reversible edit kept on the local undo/redo stacks. Applying the inverse of
+ * a command (or re-applying it) both mutates local state AND broadcasts the
+ * matching wire message, so undo/redo stays collaborative and durable.
+ */
+type HistoryCommand =
+  | { kind: "create"; shape: Shape }
+  | { kind: "delete"; shapes: Shape[] }
+  | { kind: "update"; before: Shape; after: Shape };
+
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
@@ -81,6 +91,12 @@ export class Game {
   private selectedId: string | null = null;
   private draggingShape = false;
   private dragOffset: Point = { x: 0, y: 0 };
+  private dragBefore: Shape | null = null;
+
+  // undo / redo history
+  private undoStack: HistoryCommand[] = [];
+  private redoStack: HistoryCommand[] = [];
+  private erasedShapes: Shape[] = [];
 
   // viewport (pan + zoom)
   private scale = 1;
@@ -94,6 +110,8 @@ export class Game {
 
   // callbacks for React
   onZoomChange?: (zoom: number) => void;
+  onHistoryChange?: (state: { canUndo: boolean; canRedo: boolean }) => void;
+  onSelectionChange?: (hasSelection: boolean) => void;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -121,7 +139,7 @@ export class Game {
 
   setTool(tool: Tool) {
     this.selectedTool = tool;
-    if (tool !== "select") this.selectedId = null;
+    if (tool !== "select") this.setSelected(null);
     this.render();
   }
 
@@ -132,9 +150,13 @@ export class Game {
     if (this.selectedId) {
       const shape = this.shapes.find((s) => s.id === this.selectedId);
       if (shape) {
+        const before = this.clone(shape);
         if (style.color !== undefined) shape.strokeColor = style.color;
         if (style.width !== undefined) shape.strokeWidth = style.width;
-        this.broadcast({ type: "update", shape });
+        if (JSON.stringify(before) !== JSON.stringify(shape)) {
+          this.broadcast({ type: "update", shape });
+          this.pushHistory({ kind: "update", before, after: this.clone(shape) });
+        }
         this.render();
       }
     }
@@ -143,9 +165,44 @@ export class Game {
   deleteSelected() {
     if (!this.selectedId) return;
     const id = this.selectedId;
+    const removed = this.shapes.find((s) => s.id === id);
     this.shapes = this.shapes.filter((s) => s.id !== id);
-    this.selectedId = null;
+    this.setSelected(null);
     this.broadcast({ type: "delete", ids: [id] });
+    if (removed) this.pushHistory({ kind: "delete", shapes: [this.clone(removed)] });
+    this.render();
+  }
+
+  /** Duplicate the selected shape, offset slightly so it's visible. */
+  duplicateSelected() {
+    if (!this.selectedId) return;
+    const src = this.shapes.find((s) => s.id === this.selectedId);
+    if (!src) return;
+    const copy = this.clone(src);
+    copy.id = newId();
+    translateShape(copy, 20, 20);
+    this.shapes.push(copy);
+    this.setSelected(copy.id);
+    this.broadcast(copy);
+    this.pushHistory({ kind: "create", shape: this.clone(copy) });
+    this.render();
+  }
+
+  undo() {
+    const cmd = this.undoStack.pop();
+    if (!cmd) return;
+    this.applyInverse(cmd);
+    this.redoStack.push(cmd);
+    this.emitHistory();
+    this.render();
+  }
+
+  redo() {
+    const cmd = this.redoStack.pop();
+    if (!cmd) return;
+    this.applyForward(cmd);
+    this.undoStack.push(cmd);
+    this.emitHistory();
     this.render();
   }
 
@@ -306,9 +363,10 @@ export class Game {
 
     if (this.selectedTool === "select") {
       const hit = this.hitTest(world.x, world.y);
-      this.selectedId = hit ? hit.id : null;
+      this.setSelected(hit ? hit.id : null);
       if (hit) {
         this.draggingShape = true;
+        this.dragBefore = this.clone(hit);
         const b = bounds(hit);
         this.dragOffset = { x: world.x - b.minX, y: world.y - b.minY };
       }
@@ -322,6 +380,7 @@ export class Game {
 
     if (this.selectedTool === "eraser") {
       this.erasedIds.clear();
+      this.erasedShapes = [];
       this.eraseAt(world.x, world.y);
     }
   };
@@ -380,16 +439,26 @@ export class Game {
     if (this.selectedTool === "select") {
       if (this.draggingShape && this.selectedId) {
         const shape = this.shapes.find((s) => s.id === this.selectedId);
-        if (shape) this.broadcast({ type: "update", shape });
+        if (shape) {
+          this.broadcast({ type: "update", shape });
+          if (this.dragBefore && JSON.stringify(this.dragBefore) !== JSON.stringify(shape)) {
+            this.pushHistory({ kind: "update", before: this.dragBefore, after: this.clone(shape) });
+          }
+        }
       }
       this.draggingShape = false;
+      this.dragBefore = null;
       return;
     }
 
     if (this.selectedTool === "eraser") {
       if (this.erasedIds.size > 0) {
         this.broadcast({ type: "delete", ids: [...this.erasedIds] });
+        if (this.erasedShapes.length > 0) {
+          this.pushHistory({ kind: "delete", shapes: this.erasedShapes });
+        }
         this.erasedIds.clear();
+        this.erasedShapes = [];
       }
       return;
     }
@@ -399,6 +468,7 @@ export class Game {
     if (shape) {
       this.shapes.push(shape);
       this.broadcast(shape);
+      this.pushHistory({ kind: "create", shape: this.clone(shape) });
     }
     this.pencilPoints = [];
     this.render();
@@ -406,6 +476,24 @@ export class Game {
 
   private handleKeyDown = (e: KeyboardEvent) => {
     if (e.code === "Space") this.spaceDown = true;
+
+    const meta = e.ctrlKey || e.metaKey;
+    if (meta && (e.key === "z" || e.key === "Z")) {
+      e.preventDefault();
+      if (e.shiftKey) this.redo();
+      else this.undo();
+      return;
+    }
+    if (meta && (e.key === "y" || e.key === "Y")) {
+      e.preventDefault();
+      this.redo();
+      return;
+    }
+    if (meta && (e.key === "d" || e.key === "D")) {
+      e.preventDefault();
+      this.duplicateSelected();
+      return;
+    }
     if ((e.key === "Delete" || e.key === "Backspace") && this.selectedId) {
       e.preventDefault();
       this.deleteSelected();
@@ -619,6 +707,88 @@ export class Game {
     ctx.setLineDash([6 / this.scale, 4 / this.scale]);
     ctx.strokeRect(b.minX - pad, b.minY - pad, b.maxX - b.minX + pad * 2, b.maxY - b.minY + pad * 2);
     ctx.restore();
+  }
+
+  /* --------------------------- history ---------------------------- */
+
+  private clone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  private setSelected(id: string | null) {
+    if (this.selectedId === id) return;
+    this.selectedId = id;
+    this.onSelectionChange?.(id !== null);
+  }
+
+  private emitHistory() {
+    this.onHistoryChange?.({
+      canUndo: this.undoStack.length > 0,
+      canRedo: this.redoStack.length > 0,
+    });
+  }
+
+  private pushHistory(cmd: HistoryCommand) {
+    this.undoStack.push(cmd);
+    // Cap the stack so long sessions don't grow memory without bound.
+    if (this.undoStack.length > 200) this.undoStack.shift();
+    this.redoStack = [];
+    this.emitHistory();
+  }
+
+  private removeShapeById(id: string) {
+    this.shapes = this.shapes.filter((s) => s.id !== id);
+  }
+
+  private addOrReplaceShape(shape: Shape) {
+    const idx = this.shapes.findIndex((s) => s.id === shape.id);
+    if (idx >= 0) this.shapes[idx] = shape;
+    else this.shapes.push(shape);
+  }
+
+  private applyInverse(cmd: HistoryCommand) {
+    switch (cmd.kind) {
+      case "create":
+        this.removeShapeById(cmd.shape.id);
+        this.broadcast({ type: "delete", ids: [cmd.shape.id] });
+        break;
+      case "delete":
+        for (const s of cmd.shapes) {
+          this.addOrReplaceShape(this.clone(s));
+          this.broadcast(this.clone(s));
+        }
+        break;
+      case "update":
+        this.addOrReplaceShape(this.clone(cmd.before));
+        this.broadcast({ type: "update", shape: this.clone(cmd.before) });
+        break;
+    }
+    this.reconcileSelection();
+  }
+
+  private applyForward(cmd: HistoryCommand) {
+    switch (cmd.kind) {
+      case "create":
+        this.addOrReplaceShape(this.clone(cmd.shape));
+        this.broadcast(this.clone(cmd.shape));
+        break;
+      case "delete":
+        for (const s of cmd.shapes) this.removeShapeById(s.id);
+        this.broadcast({ type: "delete", ids: cmd.shapes.map((s) => s.id) });
+        break;
+      case "update":
+        this.addOrReplaceShape(this.clone(cmd.after));
+        this.broadcast({ type: "update", shape: this.clone(cmd.after) });
+        break;
+    }
+    this.reconcileSelection();
+  }
+
+  /** Drop the selection if the selected shape no longer exists. */
+  private reconcileSelection() {
+    if (this.selectedId && !this.shapes.some((s) => s.id === this.selectedId)) {
+      this.setSelected(null);
+    }
   }
 }
 
