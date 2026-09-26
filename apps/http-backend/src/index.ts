@@ -190,27 +190,79 @@ app.get('/room/:slug', middleware, async (req, res) => {
     }
 })
 
-app.get('/rooms', middleware, async (req,res) => {
+app.get('/rooms', middleware, async (req, res) => {
     try {
         const rooms = await prismaClient.room.findMany({
             select: {
-                id : true,
-                createdAt : true,
-                slug : true
+                id: true,
+                createdAt: true,
+                slug: true,
+                adminId: true
             }
-        })
+        });
         
         res.status(200).json({
-            rooms
-        })
+            rooms,
+            currentUserId: req.userId
+        });
         
     } catch (error) {
         res.status(500).json({
-            message : "failed to fetch rooms"
+            message: "failed to fetch rooms"
         });
     }
-    
-})
+});
+
+app.delete('/room/:roomId', middleware, async (req, res) => {
+    const roomId = Number(req.params.roomId);
+    if (Number.isNaN(roomId)) {
+        res.status(400).json({
+            message: "Invalid room id"
+        });
+        return;
+    }
+    const userId = req.userId;
+
+    try {
+        const room = await prismaClient.room.findUnique({
+            where: { id: roomId }
+        });
+
+        if (!room) {
+            res.status(404).json({
+                message: "Room not found"
+            });
+            return;
+        }
+
+        if (room.adminId !== userId) {
+            res.status(403).json({
+                message: "You can only delete your own rooms"
+            });
+            return;
+        }
+
+        // Delete associated chat messages first, then delete the room
+        await prismaClient.$transaction([
+            prismaClient.chat.deleteMany({
+                where: { roomId }
+            }),
+            prismaClient.room.delete({
+                where: { id: roomId }
+            })
+        ]);
+
+        res.status(200).json({
+            message: "Room deleted successfully",
+            roomId
+        });
+    } catch (error) {
+        console.error("Failed to delete room:", error);
+        res.status(500).json({
+            message: "Failed to delete room"
+        });
+    }
+});
 
 
 

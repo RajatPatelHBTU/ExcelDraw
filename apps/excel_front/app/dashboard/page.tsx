@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, PenTool, LayoutDashboard } from "lucide-react";
+import { Plus, PenTool, LayoutDashboard, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ interface Room {
   id: number;
   slug: string;
   createdAt: string;
+  adminId?: string;
 }
 
 // Reusable animated flower component
@@ -53,6 +54,8 @@ function AnimatedFlower() {
 
 export default function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [Bloading, setBLoading] = useState(false);
@@ -72,7 +75,10 @@ export default function Dashboard() {
         const response = await axios.get(`${HTTP_BACKEND}/rooms`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setRooms(response.data.rooms);
+        setRooms(response.data.rooms || []);
+        if (response.data.currentUserId) {
+          setCurrentUserId(response.data.currentUserId);
+        }
       } catch (error) {
         console.error("Error fetching rooms:", error);
         toast.error("Failed to fetch rooms.");
@@ -83,6 +89,29 @@ export default function Dashboard() {
 
     fetchRooms();
   }, [token]);
+
+  const handleDeleteRoom = async (e: React.MouseEvent, roomId: number, roomSlug: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm(`Are you sure you want to delete room "${roomSlug}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(roomId);
+    try {
+      await axios.delete(`${HTTP_BACKEND}/room/${roomId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(`Room "${roomSlug}" deleted successfully!`);
+      setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Failed to delete room.";
+      toast.error(msg);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,13 +204,31 @@ export default function Dashboard() {
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="relative z-20 p-6 h-full flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                            <PenTool className="w-4 h-4 text-blue-400" />
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex-shrink-0 flex items-center justify-center">
+                              <PenTool className="w-4 h-4 text-blue-400" />
+                            </div>
+                            <h3 className="font-semibold text-lg text-white group-hover:text-blue-400 transition-colors truncate">
+                              {room.slug}
+                            </h3>
                           </div>
-                          <h3 className="font-semibold text-lg text-white group-hover:text-blue-400 transition-colors">
-                            {room.slug}
-                          </h3>
+                          {(!room.adminId || !currentUserId || room.adminId === currentUserId) && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteRoom(e, room.id, room.slug)}
+                              disabled={deletingId === room.id}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors z-30 flex-shrink-0"
+                              title="Delete room"
+                              aria-label="Delete room"
+                            >
+                              {deletingId === room.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="flex justify-between items-center">
