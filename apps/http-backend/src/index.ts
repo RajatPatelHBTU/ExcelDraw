@@ -1,7 +1,7 @@
  import express from 'express';
  import jwt from 'jsonwebtoken';
  import { JWT_SECRET } from '@repo/backend-common/config';
- import { CreateRoomSchema , CreateUserSchema, SigninSchema } from '@repo/common/schema';
+ import { CreateRoomSchema , CreateUserSchema, SigninSchema, ResetPasswordSchema } from '@repo/common/schema';
  import { prismaClient } from '@repo/database/db';
  import { middleware } from './middleware.js';
  import Cookie from "cookie";
@@ -97,6 +97,43 @@ app.post('/signin', async (req, res) => {
     } catch (e) {
         res.status(500).json({
             message : "Internal Server Error"
+        });
+    }
+});
+app.post('/reset-password', async (req, res) => {
+    const data = ResetPasswordSchema.safeParse(req.body);
+    if (!data.success) {
+        res.status(400).json({
+            message: "Invalid data. Password must be at least 8 characters long."
+        });
+        return;
+    }
+    const { email, newPassword } = data.data;
+    try {
+        const user = await prismaClient.user.findUnique({
+            where: { email }
+        });
+        if (!user) {
+            res.status(404).json({
+                message: "No account found with this email address"
+            });
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, bcryptSalt);
+        await prismaClient.user.update({
+            where: { email },
+            data: {
+                password: hashedPassword
+            }
+        });
+
+        res.json({
+            message: "Password reset successfully. You can now sign in with your new password."
+        });
+    } catch (e) {
+        res.status(500).json({
+            message: "Internal Server Error"
         });
     }
 });

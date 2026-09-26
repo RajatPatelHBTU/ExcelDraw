@@ -13,6 +13,11 @@ export const SigninSchema = z.object({
     password : z.string().min(8).max(255)
 });
 
+export const ResetPasswordSchema = z.object({
+    email : z.string().email().min(3).max(255),
+    newPassword : z.string().min(8).max(255)
+});
+
 export const CreateRoomSchema = z.object({
     name : z.string().min(3).max(255),
 })
