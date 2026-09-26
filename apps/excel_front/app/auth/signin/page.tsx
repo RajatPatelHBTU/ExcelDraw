@@ -36,10 +36,9 @@ function SignIn() {
         router.push('/dashboard');
         
       }
-    } catch (error) {
-      setTimeout(()=>{
-        alert("Error: " + error);
-      })
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || "Sign in failed. Please check your credentials.";
+      alert(msg);
       setIsLoading(false);
     }
   };

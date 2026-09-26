@@ -46,8 +46,9 @@ import { HTTP_BACKEND } from "@/config";
       }
       alert("Sign up failed. Please try again.");
       setIsLoading(false);
-    } catch (error) {
-      alert("Error: " + error);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || "Sign up failed. Please try again.";
+      alert(msg);
       setIsLoading(false);
     }
   };
