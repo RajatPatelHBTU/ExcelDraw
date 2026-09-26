@@ -10,21 +10,12 @@
  const app = express();
   app.use(cors({
     origin: (origin, callback) => {
-        const frontendUrl = process.env.FRONTEND_URL || "";
-        
-        // Strip protocols and trailing slashes for a bulletproof includes check
-        const cleanFrontendUrl = frontendUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
-        
-        if (!origin || 
-            origin.includes("localhost") || 
-            origin.includes("127.0.0.1") ||
-            (cleanFrontendUrl && origin.includes(cleanFrontendUrl))) {
-            callback(null, true);
-        } else {
-            callback(new Error(`Not allowed by CORS: ${origin}`));
-        }
+      // Allow any origin (reflects origin header, allowing Vercel and localhost with credentials)
+      callback(null, true);
     },
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
   }));
  app.use(express.json());
 const bcryptSalt = 10
