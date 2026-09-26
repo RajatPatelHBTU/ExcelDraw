@@ -86,24 +86,31 @@ export default function Dashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedSlug = slug.trim();
+    if (!trimmedSlug) {
+      toast.error("Please enter a room name.");
+      return;
+    }
     setBLoading(true);
 
     try {
       const response = await axios.post(`${HTTP_BACKEND}/room`, {
-        name: slug
+        name: trimmedSlug
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (response.data.roomId !== undefined) {
         toast.success("Room created successfully!");
+        setSlug("");
+        setIsModalOpen(false);
         router.push(`/canvas/${response.data.roomId}`);
       } else {
         toast.error("Room currently unavailable. Please try again.");
       }
-      setIsModalOpen(false);
-    } catch (err) {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Something went wrong. Please try again.";
+      toast.error(msg);
     } finally {
       setBLoading(false);
     }
@@ -230,7 +237,7 @@ export default function Dashboard() {
         </Button>
       </motion.div>
 
-      <RoomCard isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+      <RoomCard isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSlug(""); }}>
         <div className="p-8">
           <h2 className="text-2xl font-bold mb-2 text-white">Create New Room</h2>
           <p className="text-gray-400 text-sm mb-6">Give your new collaborative space a name.</p>
@@ -240,6 +247,7 @@ export default function Dashboard() {
                 placeholder="e.g. Brainstorming Session"
                 aria-label="Room name"
                 required
+                value={slug}
                 className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 transition-colors"
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   setSlug(event.target.value);
