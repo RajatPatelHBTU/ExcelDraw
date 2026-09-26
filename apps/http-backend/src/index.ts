@@ -214,18 +214,15 @@ app.get('/rooms', middleware, async (req, res) => {
 });
 
 app.delete('/room/:roomId', middleware, async (req, res) => {
-    const roomId = Number(req.params.roomId);
-    if (Number.isNaN(roomId)) {
-        res.status(400).json({
-            message: "Invalid room id"
-        });
-        return;
-    }
+    const param = req.params.roomId;
+    const roomIdNum = Number(param);
     const userId = req.userId;
 
     try {
-        const room = await prismaClient.room.findUnique({
-            where: { id: roomId }
+        const room = await prismaClient.room.findFirst({
+            where: Number.isNaN(roomIdNum)
+                ? { slug: param }
+                : { id: roomIdNum }
         });
 
         if (!room) {
@@ -243,23 +240,21 @@ app.delete('/room/:roomId', middleware, async (req, res) => {
         }
 
         // Delete associated chat messages first, then delete the room
-        await prismaClient.$transaction([
-            prismaClient.chat.deleteMany({
-                where: { roomId }
-            }),
-            prismaClient.room.delete({
-                where: { id: roomId }
-            })
-        ]);
+        await prismaClient.chat.deleteMany({
+            where: { roomId: room.id }
+        });
+        await prismaClient.room.delete({
+            where: { id: room.id }
+        });
 
         res.status(200).json({
             message: "Room deleted successfully",
-            roomId
+            roomId: room.id
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to delete room:", error);
         res.status(500).json({
-            message: "Failed to delete room"
+            message: error?.message || "Failed to delete room"
         });
     }
 });
